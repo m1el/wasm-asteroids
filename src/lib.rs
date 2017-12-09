@@ -81,6 +81,8 @@ fn my_main() {
             field_size: Vec2D { x: 1280.0, y: 720.0 },
         }
     });
+    game.ship.pos = game.config.field_size.scale(0.5);
+    game.ship.angle = std::f64::consts::PI * -0.5;
 
     let _start = Instant::now();
 
@@ -117,10 +119,15 @@ fn my_main() {
                 let mut buf = String::new();
                 let offset_x = if ship.pos.x * 2.0 < game.config.field_size.x { 1.0 } else { -1.0 } * game.config.field_size.x;
                 let offset_y = if ship.pos.y * 2.0 < game.config.field_size.y { 1.0 } else { -1.0 } * game.config.field_size.y;
-                draw_ship(&mut buf, Vec2D { x: 0.0, y: 0.0 }, &game.inputs, &ship);
-                draw_ship(&mut buf, Vec2D { x: offset_x, y: 0.0 }, &game.inputs, &ship);
-                draw_ship(&mut buf, Vec2D { x: 0.0, y: offset_y }, &game.inputs, &ship);
-                draw_ship(&mut buf, Vec2D { x: offset_x, y: offset_y }, &game.inputs, &ship);
+                let offsets = [
+                    Vec2D { x: 0.0, y: 0.0 },
+                    Vec2D { x: offset_x, y: 0.0 },
+                    Vec2D { x: 0.0, y: offset_y },
+                    Vec2D { x: offset_x, y: offset_y }
+                ];
+                for offset in offsets.iter() {
+                    draw_ship(&mut buf, *offset, &game.inputs, &ship);
+                }
                 update_svg(&buf);
                 event_loop.request_animation_frame();
             },
