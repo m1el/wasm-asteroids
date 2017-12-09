@@ -52,6 +52,7 @@ fn my_main() {
     let mut event_loop = EventLoop::new(Box::new(move |event, event_loop| {
         let game = game.as_mut();
         match event {
+            Event::Destroyed => {},
             Event::MouseMove { x: _, y: _ } => {
                 //putstr(&format!("x: {}, y: {}", x, y));
             },

@@ -33,6 +33,7 @@ let time = {
 
 let eventLoop = (function() {
 
+    const EVENT_DESTROYED = 0;
     const EVENT_ANIMATION_FRAME = 1;
     const EVENT_MOUSE_MOVE = 2;
     const EVENT_KEY_DOWN = 3;
@@ -137,6 +138,7 @@ let eventLoop = (function() {
     let destroy = function(id) {
         if (!eventLoopsDict.has(id)) { return false; }
         eventLoopsDict.get(id).destroy();
+        setInterval(() => Module.event_loop_cb(id, EVENT_DESTROYED, 0, 0, 0), 0);
         return true;
     };
 
