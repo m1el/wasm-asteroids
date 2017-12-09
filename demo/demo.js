@@ -19,10 +19,7 @@ let putStr = function (module, str) {
 // /copying strings
 
 let io = {
-    puts: (ptr, len) => {
-        stdout.value += getStr(Module, ptr, len) + '\n';
-        stdout.scrollTop = stdout.scrollHeight;
-    },
+    puts: (ptr, len) => console.log(getStr(Module, ptr, len)),
     alert: (n) => alert(n),
 };
 
@@ -31,7 +28,7 @@ let time = {
     performance_now: () => performance.now(),
 };
 
-let eventLoop = (function() {
+let eventLoop = function(Module) {
 
     const EVENT_DESTROYED = 0;
     const EVENT_ANIMATION_FRAME = 1;
@@ -147,13 +144,11 @@ let eventLoop = (function() {
         event_loop_raf: raf,
         event_loop_shutdown: destroy,
     };
-}());
+};
 
-let ship = {
-    ship_set_position: (x, y, a) => {
-        window.ship.style.transform = `translate(${x}px, ${y}px) rotate(${a}rad)`;
-    }
-}
+let svg = {
+    svg_set_path: (ptr, len) => window.path.setAttributeNS(null, 'd', getStr(Module, ptr, len)),
+};
 
 let math = {
     sqrt: (x) => Math.sqrt(x),
@@ -162,7 +157,7 @@ let math = {
 };
 
 let imports = {
-    env: Object.assign({}, time, eventLoop, io, ship, math)
+    env: Object.assign({}, time, eventLoop(Module), io, svg, math)
 };
 
 fetch('/target/wasm32-unknown-unknown/release/dom_api_tests.wasm')

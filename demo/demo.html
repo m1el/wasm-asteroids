@@ -1,13 +1,13 @@
 <style>
-#ship {
-  z-index: 1;
-  transform-origin: 50% 50%;
-  position: absolute;
-  width: 128px;
-  height: 128px;
-  background: url(ship.png) 50% 50% no-repeat;
+svg {
+    background: black;
+}
+#path {
+    stroke-width: 2.5px;
+    stroke: white;
 }
 </style>
-<div id="ship"></div>
-<textarea id="stdout" cols=100 rows=40></textarea>
+<svg width="1280" height="720">
+    <path id="path"></path>
+</svg>
 <script src="demo.js"></script>

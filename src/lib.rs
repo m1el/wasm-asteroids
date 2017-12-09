@@ -8,16 +8,20 @@ extern "C" {
     #[allow(dead_code)]
     fn alert(n: f64);
     fn puts(ptr: *const u8, len: usize);
-    fn ship_set_position(x: f64, y: f64, a: f64);
+    fn svg_set_path(ptr: *const u8, len: usize);
 }
 
 fn putstr(s: &str) {
     unsafe { puts(s.as_ptr(), s.len()) };
 }
+fn update_svg(s: &str) {
+    unsafe { svg_set_path(s.as_ptr(), s.len()) };
+}
 
 use time::{Instant};
 use eventloop::{Event, EventLoop};
 
+use std::fmt::Write;
 use math::{Vec2D};
 use ship::{Inputs, Config, Ship};
 
@@ -25,6 +29,37 @@ struct Game {
     ship: Ship,
     inputs: Inputs,
     config: Config,
+}
+
+const SHIP_POINTS: [Vec2D; 6] = [
+    Vec2D { x: 10.0, y: 0.0 },
+    Vec2D { x: -10.0, y: -5.0 },
+    Vec2D { x: -8.0, y: -2.5 },
+    Vec2D { x: -8.0, y: 2.5 },
+    Vec2D { x: -10.0, y: 5.0 },
+    Vec2D { x: 10.0, y: 0.0 },
+];
+const FLARE: [Vec2D; 3] = [
+    Vec2D { x: -8.0, y: 1.5 },
+    Vec2D { x: -12.0, y: 0.0 },
+    Vec2D { x: -8.0, y: -1.5 },
+];
+
+fn draw_ship(buf: &mut String, offset: Vec2D, inputs: &Inputs, ship: &Ship) {
+    for (i, p) in SHIP_POINTS.iter().enumerate() {
+        let c = if i == 0 { 'M' } else { 'L' };
+        let p_c = p.scale(2.0).rotate(ship.angle) + offset + ship.pos;
+        write!(buf, "{}{:.2} {:.2} ", c, p_c.x, p_c.y)
+            .expect("could not write string?");
+    }
+    if inputs.forward || inputs.backward {
+        for (i, p) in FLARE.iter().enumerate() {
+            let c = if i == 0 { 'M' } else { 'L' };
+            let p_c = p.scale(2.0).rotate(ship.angle) + offset + ship.pos;
+            write!(buf, "{}{:.2} {:.2} ", c, p_c.x, p_c.y)
+                .expect("could not write string?");
+        }
+    }
 }
 
 #[no_mangle]
@@ -43,7 +78,7 @@ fn my_main() {
             angular_drag: 0.05,
 
             delta_t: 1.0 / 60.0,
-            field_size: Vec2D { x: 1000.0, y: 1000.0 },
+            field_size: Vec2D { x: 1280.0, y: 720.0 },
         }
     });
 
@@ -79,7 +114,14 @@ fn my_main() {
             Event::AnimationFrame => {
                 let ship = &mut game.ship;
                 ship.tick(&game.inputs, &game.config);
-                unsafe { ship_set_position(ship.pos.x, ship.pos.y, ship.angle) };
+                let mut buf = String::new();
+                let offset_x = if ship.pos.x * 2.0 < game.config.field_size.x { 1.0 } else { -1.0 } * game.config.field_size.x;
+                let offset_y = if ship.pos.y * 2.0 < game.config.field_size.y { 1.0 } else { -1.0 } * game.config.field_size.y;
+                draw_ship(&mut buf, Vec2D { x: 0.0, y: 0.0 }, &game.inputs, &ship);
+                draw_ship(&mut buf, Vec2D { x: offset_x, y: 0.0 }, &game.inputs, &ship);
+                draw_ship(&mut buf, Vec2D { x: 0.0, y: offset_y }, &game.inputs, &ship);
+                draw_ship(&mut buf, Vec2D { x: offset_x, y: offset_y }, &game.inputs, &ship);
+                update_svg(&buf);
                 event_loop.request_animation_frame();
             },
         }
