@@ -23,7 +23,7 @@ impl Ship {
         let drag = self.speed.dot(&self.speed) * config.drag;
         self.speed -= self.speed.scale(drag * config.delta_t);
 
-        let angular_drag = self.angular_speed * self.angular_speed.abs() * config.angular_drag;
+        let angular_drag = self.angular_speed * config.angular_drag;
         self.angular_speed -= angular_drag * config.delta_t;
 
         // inputs

@@ -122,6 +122,7 @@ let eventLoop = function(Module) {
 
             self.caf();
             self.unsubscribeMouse();
+            self.subscribeKeyboard();
 
             eventLoopsDict.delete(self.id);
         }
