@@ -1,38 +1,5 @@
 use ::math::{Vec2D};
-
-#[derive(Debug)]
-pub struct Inputs {
-    pub forward: bool,
-    pub backward: bool,
-    pub left: bool,
-    pub right: bool,
-}
-
-impl Inputs {
-    pub fn new() -> Inputs {
-        Inputs {
-            forward: false,
-            backward: false,
-            left: false,
-            right: false,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Config {
-    pub acceleration: f64,
-    pub speed_limit: f64,
-    pub drag: f64,
-
-    pub angular_accel: f64,
-    pub angular_limit: f64,
-    pub angular_drag: f64,
-
-    pub delta_t: f64,
-
-    pub field_size: Vec2D,
-}
+use ::game::{Inputs, Config};
 
 #[derive(Debug)]
 pub struct Ship {
@@ -40,10 +7,6 @@ pub struct Ship {
     pub speed: Vec2D,
     pub angle: f64,
     pub angular_speed: f64,
-}
-
-fn constrain(x: f64, max: f64) -> f64 {
-    x - (x / max).floor() * max
 }
 
 impl Ship {
@@ -93,8 +56,7 @@ impl Ship {
         self.angular_speed = self.angular_speed.min(config.angular_limit).max(-config.angular_limit);
 
         // constrain position
-        self.pos.x = constrain(self.pos.x, config.field_size.x);
-        self.pos.y = constrain(self.pos.y, config.field_size.y);
+        self.pos.clip(&config.field_size);
 
         // integration step
         self.pos += self.speed.scale(config.delta_t);

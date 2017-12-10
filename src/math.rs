@@ -1,5 +1,9 @@
 use std::ops::{Add, Sub, SubAssign, AddAssign};
 
+pub fn clip(x: f64, max: f64) -> f64 {
+    x - (x / max).floor() * max
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Vec2D {
     pub x: f64,
@@ -56,6 +60,10 @@ impl Vec2D {
         self.dot(self).sqrt()
     }
 
+    pub fn normalize(&self) -> Vec2D {
+        self.scale(1.0 / self.len())
+    }
+
     pub fn rotate(&self, angle: f64) -> Vec2D {
         let sin = angle.sin();
         let cos = angle.cos();
@@ -70,5 +78,10 @@ impl Vec2D {
             x: self.x * factor,
             y: self.y * factor,
         }
+    }
+
+    pub fn clip(&mut self, other: &Vec2D) {
+        self.x = clip(self.x, other.x);
+        self.y = clip(self.y, other.y);
     }
 }

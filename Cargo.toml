@@ -1,5 +1,5 @@
 [package]
-name = "dom-api-tests"
+name = "svg-asteroids"
 version = "0.1.0"
 authors = ["Igor null <m1el.2027@gmail.com>"]
 

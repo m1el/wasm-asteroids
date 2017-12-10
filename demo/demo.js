@@ -160,7 +160,7 @@ let imports = {
     env: Object.assign({}, time, eventLoop(Module), io, svg, math)
 };
 
-fetch('/target/wasm32-unknown-unknown/release/dom_api_tests.wasm')
+fetch('/target/wasm32-unknown-unknown/release/svg_asteroids.wasm')
 .then(response => response.arrayBuffer())
 .then(bytes => WebAssembly.instantiate(bytes, imports))
 .then(results => {
