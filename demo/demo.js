@@ -122,7 +122,7 @@ let eventLoop = function(Module) {
 
             self.caf();
             self.unsubscribeMouse();
-            self.subscribeKeyboard();
+            self.unsubscribeKeyboard();
 
             eventLoopsDict.delete(self.id);
         }
@@ -157,8 +157,33 @@ let math = {
     cos: (x) => Math.cos(x),
 };
 
+let randSource = (module) => (ptr, len) => {
+    const OK = 0;
+    const RANGE_ERROR = 1;
+    const QUOTA_ERROR = 2;
+
+    try {
+        let slice = new Uint8Array(module.memory.buffer, ptr, len);
+        window.crypto.getRandomValues(slice);
+    } catch (e) {
+        if (e instanceof RangeError) {
+            return RANGE_ERROR;
+        } else if (e instanceof DOMException && x.code === DOMException.QUOTA_EXCEEDED_ERR) {
+            return QUOTA_ERROR;
+        } else {
+            throw e;
+        }
+    }
+
+    return OK;
+}
+
+let rand = {
+    rand: randSource(Module),
+};
+
 let imports = {
-    env: Object.assign({}, time, eventLoop(Module), io, svg, math)
+    env: Object.assign({}, time, eventLoop(Module), io, svg, math, rand),
 };
 
 fetch('/target/wasm32-unknown-unknown/release/svg_asteroids.wasm')
@@ -171,7 +196,7 @@ fetch('/target/wasm32-unknown-unknown/release/svg_asteroids.wasm')
         alloc: exports.alloc,
         dealloc: exports.dealloc,
         memory: exports.memory,
-        event_loop_cb: exports.event_loop_cb
+        event_loop_cb: exports.event_loop_cb,
     });
     exports.my_main();
 });

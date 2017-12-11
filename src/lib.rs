@@ -1,6 +1,7 @@
 pub mod time;
 pub mod alloc;
 pub mod eventloop;
+mod rand;
 mod math;
 mod ship;
 mod game;
