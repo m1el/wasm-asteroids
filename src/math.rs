@@ -52,12 +52,16 @@ impl Vec2D {
         Vec2D { x: 1.0, y: 0.0 }
     }
 
-    pub fn dot(&self, other: &Vec2D) -> f64 {
+    pub fn dot(self, other: Vec2D) -> f64 {
         self.x * other.x + self.y * other.y
     }
 
-    pub fn len(&self) -> f64 {
+    pub fn len(self) -> f64 {
         self.dot(self).sqrt()
+    }
+
+    pub fn cross(self, other: Vec2D) -> f64 {
+        self.x * other.y - self.y * other.x
     }
 
     pub fn normalize(&self) -> Vec2D {

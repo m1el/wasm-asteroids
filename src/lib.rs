@@ -1,9 +1,11 @@
 pub mod time;
 pub mod alloc;
 pub mod eventloop;
-mod rand;
+//mod rand;
+mod geom;
 mod math;
 mod ship;
+mod input;
 mod game;
 mod render_path;
 

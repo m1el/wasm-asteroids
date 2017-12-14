@@ -1,8 +1,8 @@
-use ::game::{Game, Bullet, Asteroid};
+use ::game::{Game, Bullet, Asteroid, InputIndex};
 use ::math::{Vec2D};
 use std::fmt::Write;
 
-const SHIP_POINTS: [Vec2D; 6] = [
+const SHIP_POINTS: &[Vec2D] = &[
     Vec2D { x: 10.0, y: 0.0 },
     Vec2D { x: -10.0, y: -5.0 },
     Vec2D { x: -8.0, y: -2.5 },
@@ -11,7 +11,7 @@ const SHIP_POINTS: [Vec2D; 6] = [
     Vec2D { x: 10.0, y: 0.0 },
 ];
 
-const FLARE: [Vec2D; 3] = [
+const FLARE: &[Vec2D] = &[
     Vec2D { x: -8.0, y: 1.5 },
     Vec2D { x: -12.0, y: 0.0 },
     Vec2D { x: -8.0, y: -1.5 },
@@ -19,6 +19,7 @@ const FLARE: [Vec2D; 3] = [
 
 fn render_ship(buf: &mut String, game: &Game) {
     let ship = &game.ship;
+    if ship.dead { return; }
     let config = &game.config;
     let inputs = &game.inputs;
     let offset_x = if ship.pos.x * 2.0 < config.field_size.x { 1.0 } else { -1.0 } * config.field_size.x;
@@ -36,7 +37,7 @@ fn render_ship(buf: &mut String, game: &Game) {
             write!(buf, "{}{:.2} {:.2} ", c, p_c.x, p_c.y)
                 .expect("could not write string?");
         }
-        if inputs.forward || inputs.backward {
+        if inputs.is_down(InputIndex::Forward) || inputs.is_down(InputIndex::Backward) {
             for (i, p) in FLARE.iter().enumerate() {
                 let c = if i == 0 { 'M' } else { 'L' };
                 let p_c = p.scale(2.0).rotate(ship.angle) + *offset + ship.pos;

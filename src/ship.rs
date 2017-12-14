@@ -1,10 +1,11 @@
 use ::math::{Vec2D};
-use ::game::{Inputs, Config};
+use ::game::{InputIndex, Inputs, Config};
 
 #[derive(Debug)]
 pub struct Ship {
     pub pos: Vec2D,
     pub speed: Vec2D,
+    pub dead: bool,
     pub angle: f64,
     pub angular_speed: f64,
 }
@@ -16,18 +17,20 @@ impl Ship {
             speed: Vec2D::zero(),
             angle: 0.0,
             angular_speed: 0.0,
+            dead: false,
         }
     }
+
     pub fn tick(&mut self, inputs: &Inputs, config: &Config) {
         // drag
-        let drag = self.speed.dot(&self.speed) * config.drag;
+        let drag = self.speed.dot(self.speed) * config.drag;
         self.speed -= self.speed.scale(drag * config.delta_t);
 
         let angular_drag = self.angular_speed * config.angular_drag;
         self.angular_speed -= angular_drag * config.delta_t;
 
         // inputs
-        let accel_dir = match (inputs.forward, inputs.backward) {
+        let accel_dir = match (inputs.is_down(InputIndex::Forward), inputs.is_down(InputIndex::Backward)) {
             (true, false) => 1.0,
             (false, true) => -1.0,
             _ => 0.0,
@@ -38,7 +41,7 @@ impl Ship {
             self.speed += accel;
         }
 
-        let rotate_dir = match (inputs.left, inputs.right) {
+        let rotate_dir = match (inputs.is_down(InputIndex::Left), inputs.is_down(InputIndex::Right)) {
             (true, false) => -1.0,
             (false, true) => 1.0,
             _ => 0.0,
