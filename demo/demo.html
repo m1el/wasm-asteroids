@@ -2,6 +2,11 @@
 svg {
     background: black;
 }
+html, body { padding: 0; margin: 0; }
+body {
+    max-width: 1300;
+    margin: auto;
+}
 #path {
     stroke-width: 2.5px;
     stroke: white;
@@ -12,4 +17,7 @@ svg {
         <path id="path"></path>
     </g>
 </svg>
+<p>SVG asteroids, a WASM demo.</p>
+<p>Controls: arrows - accelerate and roll the ship, Z / Space - shoot</p>
+<p>Repo: <a href="https://github.com/m1el/wasm-asteroids">github.com/m1el/wasm-asteroids</a>
 <script src="demo.js"></script>
