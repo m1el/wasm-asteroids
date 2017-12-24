@@ -49,7 +49,7 @@ Rendering is done using by setting the path `d` attribute:
     svg_set_path: (ptr, len) => window.path.setAttributeNS(null, 'd', getStr(Module, ptr, len)),
 ```
 
-Rust generates path points in [src/render\_path.js](src/render_path.rs), which contains paths for digits, ship, etc.
+Rust generates path points in [src/render\_path.rs](src/render_path.rs), which contains paths for digits, ship, etc.
 
 ## LICENSE
 
