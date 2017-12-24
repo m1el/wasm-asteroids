@@ -7,3 +7,7 @@ authors = ["Igor null <m1el.2027@gmail.com>"]
 crate-type=["cdylib"]
 
 [dependencies]
+
+[dependencies.rand]
+version = "0.4.1"
+default-features = false

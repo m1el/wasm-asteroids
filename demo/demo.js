@@ -179,7 +179,7 @@ let randSource = (module) => (ptr, len) => {
 }
 
 let rand = {
-    rand: randSource(Module),
+    js_fill_rand: randSource(Module),
 };
 
 let imports = {

@@ -2,11 +2,14 @@ use ::math::{Vec2D};
 use ::ship::{Ship};
 pub use ::input::{Inputs, InputIndex};
 use ::geom::{test_circle_point, test_circle_triangle};
+use ::rng::{StdRng, Rng, new_rng};
 
 pub struct Config {
     pub acceleration: f64,
     pub speed_limit: f64,
     pub drag: f64,
+
+    pub explosion_life: f64,
 
     pub angular_accel: f64,
     pub angular_limit: f64,
@@ -40,6 +43,8 @@ impl Config {
             speed_limit: 1000.0,
             drag: 0.000005,
 
+            explosion_life: 0.3,
+
             angular_accel: 30.0,
             angular_limit: 4.0,
             angular_drag: 8.0,
@@ -48,7 +53,7 @@ impl Config {
             bullet_speed: 400.0,
             bullet_lifetime: 1.7,
 
-            asteroid_min_size: 10.0,
+            asteroid_min_size: 20.0,
 
             delta_t: 1.0 / 60.0,
             field_size: Vec2D { x: 1280.0, y: 720.0 },
@@ -144,18 +149,47 @@ impl UFO {
     pub fn tick(&mut self) {}
 }
 
+pub struct Explosion {
+    pub pos: Vec2D,
+    pub start_tick: u64,
+    pub lifetime: u64,
+}
+
+impl Explosion {
+    pub fn new(pos: Vec2D, tick: u64, config: &Config) -> Explosion {
+        Explosion {
+            pos: pos,
+            start_tick: tick,
+            lifetime: tick + ((config.explosion_life / config.delta_t) as u64),
+        }
+    }
+
+    //pub fn tick() { }
+}
+
+#[derive(Eq, PartialEq)]
+pub enum GameState {
+    Running,
+    Respawning,
+    GameOver,
+}
+
 pub struct Game {
+    pub game_state: GameState,
     pub ship: Ship,
     pub ufo: Option<UFO>,
     pub ufo_spawn_tick: u64,
-    pub lives: usize,
-    pub score: usize,
+    pub lives: u64,
+    pub level: usize,
+    pub score: u64,
     pub tick: u64,
     pub next_bullet_tick: u64,
+    pub explosions: Vec<Explosion>,
     pub bullets: Vec<Bullet>,
     pub asteroids: Vec<Asteroid>,
     pub inputs: Inputs,
     pub config: Config,
+    pub rng: StdRng,
 }
 
 fn collide_asteroid_bullet(asteroid: &Asteroid, bullet: &Bullet) -> bool {
@@ -171,42 +205,57 @@ fn collide_asteroid_ship(asteroid: &Asteroid, ship: &Ship) -> bool {
     test_circle_triangle(asteroid.pos, asteroid.size, tr[0], tr[1], tr[2])
 }
 
+use ::std::f64::consts::PI;
+
 impl Game {
     pub fn new() -> Game {
         let mut game = Game {
             tick: 0,
             lives: 4,
+            level: 2,
             score: 0,
+            game_state: GameState::Running,
             next_bullet_tick: 0,
             ship: Ship::new(),
             ufo: None,
             ufo_spawn_tick: ::std::u64::MAX,
+            explosions: Vec::new(),
             bullets: Vec::new(),
             asteroids: Vec::new(),
             inputs: Inputs::new(),
             config: Config::new(),
+            rng: new_rng().expect("could not seed rng"),
         };
-        game.asteroids.push(Asteroid {
-            pos: Vec2D { x: 100.0, y: 100.0 },
-            speed: Vec2D { x: 30.0, y: 70.0 },
-            angle: 0.0,
-            angle_speed: 0.5,
-            size: 50.0,
-            style: 5,
-            dead: false,
-        });
-        game.asteroids.push(Asteroid {
-            pos: Vec2D { x: 800.0, y: 100.0 },
-            speed: Vec2D { x: 70.0, y: 30.0 },
-            angle: 0.0,
-            angle_speed: 0.7,
-            size: 50.0,
-            style: 5,
-            dead: false,
-        });
-        game.ship.pos = game.config.field_size.scale(0.5);
-        game.ship.angle = ::std::f64::consts::PI * -0.5;
+        game.spawn_level();
         game
+    }
+
+    pub fn spawn_level(&mut self) {
+        let field_size = self.config.field_size;
+        self.ship.pos = field_size.scale(0.5);
+        self.ship.speed = Vec2D::zero();
+        self.ship.angle = PI * -0.5;
+
+        for _ in 0..self.level {
+            let mut pos;
+            loop {
+                pos = Vec2D {
+                    x: field_size.x * self.rng.next_f64(),
+                    y: field_size.y * self.rng.next_f64(),
+                };
+                if (pos - self.ship.pos).len() > 300.0 { break; }
+            }
+            let angle = PI * 2.0 * self.rng.next_f64();
+            self.asteroids.push(Asteroid {
+                pos: pos,
+                speed: Vec2D { x: 100.0, y: 0.0 }.rotate(angle),
+                angle: angle,
+                angle_speed: 0.6,
+                size: 50.0,
+                style: 5,
+                dead: false,
+            });
+        }
     }
 
     pub fn reset(&mut self) {
@@ -214,21 +263,43 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-        self.tick += 1;
-        if self.ship.dead {
-            let ship = &mut self.ship;
-            if self.inputs.is_down(InputIndex::Shoot) {
-                ship.speed = Vec2D::zero();
-                ship.pos = self.config.field_size.scale(0.5);
-                ship.angle = ::std::f64::consts::PI * -0.5;
-                ship.dead = false;
-            }
-        }
+        match self.game_state {
+            GameState::GameOver => {
+                if self.inputs.is_down(InputIndex::Shoot) {
+                    self.reset();
+                }
+                return;
+            },
+            GameState::Respawning => {
+                if self.lives == 0 {
+                    self.game_state = GameState::GameOver;
+                    return;
+                }
 
-        // decay bullets
-        if self.bullets.len() > 0 && self.bullets[0].lifetime == self.tick {
-            self.bullets.remove(0);
+                let ship = &mut self.ship;
+                if self.inputs.is_down(InputIndex::Shoot) {
+                    self.game_state = GameState::Running;
+                    self.lives -= 1;
+                    ship.speed = Vec2D::zero();
+                    ship.pos = self.config.field_size.scale(0.5);
+                    ship.angle = ::std::f64::consts::PI * -0.5;
+                    ship.dead = false;
+                }
+            },
+            GameState::Running => {
+                if self.asteroids.len() == 0 {
+                    self.level += 1;
+                    self.spawn_level();
+                }
+            },
         }
+        self.tick += 1;
+
+        let tick = self.tick;
+        // decay bullets
+        self.bullets.retain(|b| b.lifetime > tick);
+        // decay explosions
+        self.explosions.retain(|e| e.lifetime > tick);
 
         {
             // move entities
@@ -263,16 +334,21 @@ impl Game {
         {
             // collide asteroids with bullets
             let asteroids = &mut self.asteroids;
+            let explosions = &mut self.explosions;
             let bullets = &mut self.bullets;
             let config = &self.config;
             let mut new_asteroids = Vec::new();
+            let mut new_explosions = Vec::new();
+            let mut score_change = 0;
             for asteroid in asteroids.iter_mut() {
                 for bullet in bullets.iter_mut().filter(|bullet| bullet.source == BulletSource::Player) {
                     // bullets and asteroids may collide multiple times
                     // the alternative is having order-dependent logic
                     if collide_asteroid_bullet(asteroid, bullet) {
                         if !asteroid.dead {
+                            score_change += 100;
                             new_asteroids.append(&mut asteroid.split_off(&config));
+                            new_explosions.push(Explosion::new(asteroid.pos, tick, &config));
                         }
                         asteroid.dead = true;
                         bullet.dead = true;
@@ -280,23 +356,30 @@ impl Game {
                 }
             }
 
+            self.score += score_change;
+
             bullets.retain(|bullet| !bullet.dead);
             asteroids.retain(|asteroid| !asteroid.dead);
 
             asteroids.append(&mut new_asteroids);
+            explosions.append(&mut new_explosions);
         }
 
         {
             // collide bullets with ship & ufo
             let bullets = &mut self.bullets;
+            let explosions = &mut self.explosions;
             let ship = &mut self.ship;
             let ufo = &mut self.ufo;
+            let config = &self.config;
             let collide_ship_bullet = |_: &Ship, _: &Bullet| false;
             let collide_ufo_bullet = |_: &UFO, _: &Bullet| false;
             for bullet in bullets.iter_mut() {
                 match bullet.source {
                     BulletSource::UFO => {
                         if !ship.dead && collide_ship_bullet(ship, bullet) {
+                            self.game_state = GameState::Respawning;
+                            explosions.push(Explosion::new(ship.pos, tick, config));
                             ship.dead = true;
                             bullet.dead = true;
                         }
@@ -317,6 +400,7 @@ impl Game {
         {
             // collide asteroids with ship & ufo
             let asteroids = &mut self.asteroids;
+            let explosions = &mut self.explosions;
             let mut new_asteroids = Vec::new();
             let config = &self.config;
             let ship = &mut self.ship;
@@ -328,6 +412,9 @@ impl Game {
                 let mut collided = false;
 
                 if !ship.dead && collide_asteroid_ship(asteroid, ship) {
+                    self.game_state = GameState::Respawning;
+                    explosions.push(Explosion::new(ship.pos, tick, &config));
+                    explosions.push(Explosion::new(asteroid.pos, tick, &config));
                     ship.dead = true;
                     collided = true;
                 }
