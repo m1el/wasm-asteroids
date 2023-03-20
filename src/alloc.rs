@@ -10,9 +10,7 @@ fn alloc(size: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub extern "C"
+pub unsafe extern "C"
 fn dealloc(ptr: *mut u8, cap: usize) {
-    unsafe  {
         let _buf = Vec::from_raw_parts(ptr, 0, cap);
-    }
 }
